@@ -16,7 +16,6 @@
 		<app.runtime>4.7.0</app.runtime>
 		<mule.maven.plugin.version>4.2.0</mule.maven.plugin.version>
 		<region>us-east-2</region>
-		<target>CH2</target>
 	</properties>
 
 	<build>
@@ -44,7 +43,6 @@
 						<workerType>${vCore}</workerType>
 						<workers>${workers}</workers>
 						<region>${region}</region>
-						<target>CH2</target>
 						<objectStoreV2>true</objectStoreV2>
 					</cloudHubDeployment>
 					<sharedLibraries>
