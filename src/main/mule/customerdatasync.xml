@@ -1,0 +1,169 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:batch="http://www.mulesoft.org/schema/mule/batch" xmlns:salesforce="http://www.mulesoft.org/schema/mule/salesforce"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:file="http://www.mulesoft.org/schema/mule/file" xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd
+http://www.mulesoft.org/schema/mule/batch http://www.mulesoft.org/schema/mule/batch/current/mule-batch.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="8813b8f4-5b0e-4a6d-b3f2-435fad991cd5" >
+		<http:listener-connection host="0.0.0.0" port="8081" />
+	</http:listener-config>
+	<file:config name="File_Config" doc:name="File Config" doc:id="c020460a-fb3f-449e-ba58-a76cdf60b4f3" />
+	<salesforce:sfdc-config name="Salesforce_Config" doc:name="Salesforce Config" doc:id="4d83b20b-16c8-4d4c-b059-0932aa6ec826" >
+		<salesforce:basic-connection username="apex@cct.cloudhub" password="Aravind@123" securityToken="ECWJXV7F8lnmW2NRvznpnPfI0" />
+	</salesforce:sfdc-config>
+	<db:config name="Database_Config" doc:name="Database Config" doc:id="3982c81d-74f3-4d8c-b444-5d0753eacaf6" >
+		<db:my-sql-connection host="localhost" port="3306" user="root" password="Aravind@123" database="dataSync" />
+	</db:config>
+	<db:config name="Database_Config1" doc:name="Database Config" doc:id="d5ccabcf-acb2-40c6-9da7-331959703059" >
+		<db:my-sql-connection host="localhost" port="3306" user="root" password="Aravind@123" database="dataSync" />
+	</db:config>
+	<db:config name="Database_Config2" doc:name="Database Config" doc:id="8a408844-1c98-4059-8065-cf3b1304ed3e" >
+		<db:my-sql-connection host="localhost" port="3306" user="root" password="Aravind@123" database="dataSync" />
+	</db:config>
+	<!-- [STUDIO:"customerdatasyncFlow"]<flow name="customerdatasyncFlow" doc:id="f2e9097e-fe9d-4bed-abb9-2b3b7e02c9e5" >
+		<http:listener doc:name="Listener" doc:id="bfb3fd2d-15eb-4959-aa46-6632891369d5" config-ref="HTTP_Listener_config" path="/sync"/>
+		<db:select doc:name="Select" doc:id="4ef20468-b8d6-4759-b71a-6d732a6d818b" config-ref="Database_Config">
+			<db:sql ><![CDATA[select * from custData;&#93;&#93;></db:sql>
+		</db:select>
+		<set-payload value="#[payload&#93;" doc:name="Set Payload" doc:id="9a9ca94b-0826-48b9-8f55-d257b89aa020" />
+		<scatter-gather doc:name="Scatter-Gather" doc:id="abcabeaf-b0c6-4a72-a6b8-99007ddd34a6">
+				<route>
+					<ee:transform doc:name="Transform Message" doc:id="197f0ff1-af9f-4a4a-80ce-3a6cc66e67f4">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/java
+&#45;&#45;-
+payload map ( payload01 , indexOfPayload01 ) -> {
+	Name: payload01.Name,
+	Customer_ID__c: payload01.Id as String,
+	Email__c: payload01.Email,
+	Phone__c: payload01.phone,
+	Address__c: payload01.Address
+}&#93;&#93;></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+				<choice doc:name="Choice" doc:id="e631173b-da94-4ec4-be25-72f66495c427">
+			<when expression="#[payload.Name != null and payload.Email__c != null and payload.Phone__c != null and payload.Address__c != null and payload.Customer_ID__c != null&#93;">
+							<salesforce:upsert doc:name="Upsert" doc:id="2a1787e0-821c-4e74-80ae-6431b766c6c6" config-ref="Salesforce_Config" objectType="Customer_Profile__c" externalIdFieldName="Customer_ID__c" />
+				<logger level="INFO" doc:name="Logger" doc:id="74548626-6cb4-4f2f-bfd5-4994e28f821e" message="logger 2" />
+						</when>
+					<otherwise>
+						<logger level="INFO" doc:name="Logger" doc:id="1a322504-1351-4021-bec5-7a510b5a8960" message="Record skipped for Salesforce as some fields are null" />
+						</otherwise>
+					</choice>
+				</route>
+			<route >
+				<ee:transform doc:name="Transform Message" doc:id="7d55d3c4-85a4-4a2c-b333-02bf83e72c7e" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+&#45;&#45;-
+payload map ( payload01 , indexOfPayload01 ) -> {
+	Email: payload01.Email,
+	Address: payload01.Address,
+	phone: payload01.phone,
+	Name: payload01.Name
+}&#93;&#93;></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				<choice doc:name="Choice" doc:id="b664d493-99fb-41a2-9991-d486a892fc95">
+			<when expression="#[isEmpty(trim(payload[0&#93;.Name)) or payload[0&#93;.Name == null or isEmpty(trim(payload[0&#93;.Email)) or payload[0&#93;.Email == null or isEmpty(trim(payload[0&#93;.phone)) or payload[0&#93;.phone == null or isEmpty(trim(payload[0&#93;.Address)) or payload[0&#93;.Address == null&#93;">
+						<logger level="INFO" doc:name="Logger" doc:id="098e1e15-4476-4697-b7f7-b35ab0ff332d" message="#[payload&#93;"/>
+						<db:bulk-insert doc:name="Bulk insert" doc:id="b1b091f8-0742-423c-87b9-abe837f06f45" config-ref="Database_Config1">
+					<db:sql><![CDATA[insert into ErrorCustData (Name, Email, phone, Address) values (:Name, :Email, :phone, :Address)&#93;&#93;></db:sql>
+				</db:bulk-insert>
+						<logger level="INFO" doc:name="error" doc:id="95f10dbd-9d19-4398-a88b-b39c20d9f00c" message="logger 1" />
+					</when>
+					<otherwise>
+						<logger level="INFO" doc:name="Logger" doc:id="777ad7c8-8eaa-41a5-9dff-1268c29467dd" message="Record skipped for MySQL as all fields are non-null" />
+					</otherwise>
+		</choice>
+			</route>
+		</scatter-gather>
+		<set-payload value="Process Done" doc:name="Set Payload" doc:id="4b1ed678-37d9-437c-bf44-8d759a34639b" />
+	</flow> [STUDIO] -->
+	<flow name="customerdatasyncFlow" doc:id="04f2ad2c-f560-4b7e-9f2d-d65968972b6c" >
+		<http:listener doc:name="Listener" doc:id="213700a9-3143-4e40-85f3-0ea09217e902" config-ref="HTTP_Listener_config" path="/sync2"/>
+		<db:select doc:name="Select" doc:id="3884bc98-572a-4f8b-ae0c-9f465fa2a0ea" config-ref="Database_Config2">
+			<db:sql ><![CDATA[select * from custData]]></db:sql>
+		</db:select>
+		<ee:transform doc:name="Transform Message" doc:id="626ec321-7728-49d9-93cc-5b9a10eb9ca2">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/java
+---
+{
+	nonNullRecords: (payload filter (
+		$.Id != null and
+		$.Name != null and
+		$.Email != null and
+		$.phone != null and
+		$.Address != null
+	)) as Array,
+	
+	nullRecords: (payload filter (
+		$.Name == null or
+		$.Email == null or
+		$.phone == null or
+		$.Address == null
+	)) as Array
+}]]></ee:set-payload>
+			</ee:message>
+			<ee:variables />
+		</ee:transform>
+		<set-variable value="#[payload.nonNullRecords]" doc:name="Set Variable" doc:id="f060d0f0-80b3-404a-85c7-314b9f639dce" variableName="nonNullRecords" />
+		<logger level="INFO" doc:name="Logger" doc:id="77577ea7-d4f3-4e7c-b47f-2f794dc4793e" message="#[vars.nonNullRecords]"/>
+		<set-variable value="#[payload.nullRecords]" doc:name="Set Variable" doc:id="53205e68-0f84-461a-8877-c2d5713f12fe" variableName="nullRecords" />
+		<logger level="INFO" doc:name="Logger" doc:id="753dbe8a-1c6b-4c87-9e6e-4d02f64cbc71" message="#[vars.nullRecords]"/>
+		<scatter-gather doc:name="Scatter-Gather" doc:id="d3cd98f1-5e83-4dd5-944b-c6f093aef48c" >
+			<route >
+				<ee:transform doc:name="Transform Message" doc:id="fbab7378-a1e1-430c-b8ab-6ee72c242a1a">
+					<ee:message>
+						<ee:set-payload><![CDATA[%dw 2.0
+output application/java
+---
+vars.nonNullRecords map ( nonNullRecords , indexOfNonNullRecord ) -> {
+	Name: nonNullRecords.Name,
+	Customer_ID__c: nonNullRecords.Id as String,
+	Email__c: nonNullRecords.Email,
+	Phone__c: nonNullRecords.phone,
+	Address__c: nonNullRecords.Address
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				<salesforce:upsert doc:name="Upsert" doc:id="00b446da-8b23-403b-9007-25fd05b37a6c" config-ref="Salesforce_Config" objectType="Customer_Profile__c" externalIdFieldName="Email__c" />
+				<logger level="INFO" doc:name="Logger" doc:id="22f08794-a0da-4350-aeec-d982c1d2b2d4" message="upsert logger_1"/>
+			</route>
+			<route >
+				<ee:transform doc:name="Transform Message" doc:id="2beec20e-d6a4-44e2-b23a-3f11a0a9f95e" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+---
+vars.nullRecords map ( nullRecord , indexOfNullRecord ) -> {
+	Name: nullRecord.Name,
+	Id__c: nullRecord.Id as String,
+	Phone_Number__c: nullRecord.phone,
+	Address__c: nullRecord.Address,
+	Email__c: nullRecord.Email
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				<!-- [STUDIO:"Upsert"]<salesforce:upsert doc:name="Upsert" doc:id="9a70d7ae-da7e-45a6-a03a-e4f489b94e4d" config-ref="Salesforce_Config" objectType="custErrorData__c" externalIdFieldName="Email__c" /> [STUDIO] -->
+				<salesforce:create type="custErrorData__c" doc:name="Create" doc:id="196f875f-87d6-4d78-ba7f-bf12b6b43753" config-ref="Salesforce_Config"/>
+			</route>
+		</scatter-gather>
+		<set-payload value="process done" doc:name="Set Payload" doc:id="c31a88f5-32f6-4480-bf6c-216726d0deaa" />
+		<error-handler >
+			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="c0f3ba65-34f7-4e0b-8a24-259361dc5a3c" >
+				<logger level="INFO" doc:name="Logger" doc:id="77dd378c-820a-41fc-aef6-6f5a2e3288c8" message="Error occurred: #[error.errorType] - #[error.errorMessage]"/>
+				<set-payload value="An error occurred while processing the data. Please check logs for details" doc:name="Set Payload" doc:id="de84a68a-866f-402a-ab1f-22e6c9ab48aa" />
+			</on-error-propagate>
+		</error-handler>
+	</flow>
+</mule>
